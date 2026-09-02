@@ -90,14 +90,27 @@ export const ReceiveFilesBrowserModal = ({
         moveEntire,
       );
       if (result.success || result.partial) {
-        toaster.toast({
-          title: result.partial ? t("receiveHistory.movePartial") : t("receiveHistory.moveComplete"),
-          body: result.failures?.length
-            ? result.failures.map((failure) => `${failure.selection}: ${failure.error}`).join("; ")
-            : `${result.moved?.length || selectedFiles.size} ${t("common.files")}`,
-        });
-        await onMoved();
+        const movedCount = Array.isArray(result.moved) ? result.moved.length : selectedFiles.size;
+        const failureDetails = result.failures?.length
+          ? result.failures.map((failure) => `${failure.selection}: ${failure.error}`).join("; ")
+          : "";
+        const title = result.partial ? t("receiveHistory.movePartial") : t("common.success");
+        const body = result.partial
+          ? `${movedCount} ${t("common.files")}${failureDetails ? `; ${failureDetails}` : ""}`
+          : `${t("receiveHistory.moveComplete")}: ${movedCount} ${t("common.files")}`;
+
+        // Close first so the global toast is visible after the modal disappears.
         closeModal();
+        toaster.toast({
+          title,
+          body,
+          duration: 8000,
+        });
+        try {
+          await onMoved();
+        } catch (refreshError) {
+          console.warn("Receive history refresh failed after move:", refreshError);
+        }
       } else {
         toaster.toast({ title: t("common.failed"), body: result.error || t("receiveHistory.moveFailed") });
       }
