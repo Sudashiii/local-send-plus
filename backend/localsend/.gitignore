@@ -1,0 +1,7 @@
+uploads/
+config.yaml
+.DS_Store
+log/
+test/
+node_modules/
+dist

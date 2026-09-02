@@ -1,0 +1,54 @@
+import {
+  DialogBody,
+  DialogButton,
+  DialogButtonPrimary,
+  DialogFooter,
+  DialogHeader,
+  ModalRoot,
+} from "@decky/ui";
+import { t } from "../i18n";
+
+interface ConfirmModalProps {
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm: () => void;
+  onCancel?: () => void;
+  closeModal?: () => void;
+}
+
+export const ConfirmModal = ({
+  title,
+  message,
+  confirmText = t("common.confirm"),
+  cancelText = t("common.cancel"),
+  onConfirm,
+  onCancel,
+  closeModal,
+}: ConfirmModalProps) => {
+  const handleConfirm = () => {
+    closeModal?.();
+    onConfirm();
+  };
+
+  const handleCancel = () => {
+    closeModal?.();
+    onCancel?.();
+  };
+
+  return (
+    <ModalRoot onCancel={handleCancel} closeModal={closeModal}>
+      <DialogHeader>{title}</DialogHeader>
+      <DialogBody>
+        <div style={{ fontSize: "14px", color: "#b8b6b4", whiteSpace: "pre-wrap" }}>
+          {message}
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <DialogButton onClick={handleCancel} style={{marginTop: "10px"}}>{cancelText}</DialogButton>
+        <DialogButtonPrimary onClick={handleConfirm} style={{marginTop: "10px"}}>{confirmText}</DialogButtonPrimary>
+      </DialogFooter>
+    </ModalRoot>
+  );
+};

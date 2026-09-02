@@ -1,0 +1,11 @@
+{
+  "name": "LocalSendPlus",
+  "author": "MoeMagicMango",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["localsend","transfer","Clipboard","Text","Screenshot"],
+    "description": "Use LocalSendPlus in gaming mode, including fast copy and paste of screenshots and text with LocalSend clients.",
+    "image": "https://raw.githubusercontent.com/MoYoez/Decky-LocalSend/main/.github/assets/preview.jpg"
+  }
+}

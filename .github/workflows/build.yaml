@@ -1,0 +1,47 @@
+name: Build LocalSendPlus
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build_plugin:
+    name: Build LocalSendPlus Plugin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Decky CLI
+        run: |
+          mkdir -p cli
+          curl -L -o "$(pwd)/cli/decky" "https://github.com/SteamDeckHomebrew/cli/releases/latest/download/decky-linux-x86_64"
+          chmod +x cli/decky
+
+      - name: Build with Decky CLI
+        run: |
+          sudo mkdir -p /tmp/output
+          sudo $(pwd)/cli/decky plugin build -b -o /tmp/output
+          sudo chown -R $(whoami) /tmp/output
+
+      - name: Repack artifact
+        run: |
+          ZIP_FILE=$(ls /tmp/output/*.zip | head -1)
+
+          rm -rf /tmp/unpacked /tmp/repack
+          mkdir -p /tmp/unpacked /tmp/repack/localsendplus
+
+          unzip -q "$ZIP_FILE" -d /tmp/unpacked
+          SRC_DIR=$(find /tmp/unpacked -mindepth 1 -maxdepth 1 -type d | head -1)
+          cp -R "$SRC_DIR"/* /tmp/repack/localsendplus
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: localsendplus
+          path: /tmp/repack/
+          if-no-files-found: error
