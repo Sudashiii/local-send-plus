@@ -5,6 +5,7 @@ import {
   PanelSectionRow,
   Field,
   Focusable,
+  DialogButton,
   ToggleField,
   showModal,
   SidebarNavigation,
@@ -36,6 +37,13 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { NetworkInterfaceSelectModal } from "../components/NetworkInterfaceSelectModal";
 import { FavoritesAddModal } from "../components/FavoritesAddModal";
 import type { NetworkInfo } from "../types/devices";
+
+const receiveLocationActionButtonStyle = {
+  width: "fit-content",
+  minWidth: "6em",
+  maxWidth: "100%",
+  flexShrink: 0,
+};
 
 // Main Config Page with SidebarNavigation
 export const ConfigPage: FC = () => {
@@ -489,35 +497,35 @@ export const ConfigPage: FC = () => {
         {receiveLocations.map((location) => (
           <PanelSectionRow key={location.id}>
             <div style={{ width: "100%", padding: "4px 0" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                <span style={{ fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", minWidth: 0 }}>
+                <span style={{ fontWeight: "bold", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {location.name}{location.id === defaultReceiveLocationId ? ` (${t("receiveLocations.default")})` : ""}
                 </span>
-                <span style={{ color: location.available === false ? "#ff6b6b" : "#888", fontSize: "10px" }}>
+                <span style={{ color: location.available === false ? "#ff6b6b" : "#888", fontSize: "10px", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {location.available === false ? t("receiveLocations.unavailable") : t("receiveLocations.available")}
                 </span>
               </div>
-              <div style={{ color: "#888", fontSize: "10px", margin: "3px 0 6px", wordBreak: "break-all" }}>
+              <div style={{ color: "#888", fontSize: "10px", margin: "3px 0 6px", overflowWrap: "anywhere", wordBreak: "break-all" }}>
                 {location.path}
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+              <Focusable style={{ display: "flex", flexWrap: "wrap", gap: "8px", width: "100%" }}>
                 {location.id !== defaultReceiveLocationId && (
-                  <ButtonItem layout="inline" onClick={() => handleSetDefaultReceiveLocation(location)}>
+                  <DialogButton style={receiveLocationActionButtonStyle} onClick={() => handleSetDefaultReceiveLocation(location)}>
                     {t("receiveLocations.makeDefault")}
-                  </ButtonItem>
+                  </DialogButton>
                 )}
-                <ButtonItem layout="inline" onClick={() => handleRenameReceiveLocation(location)}>
+                <DialogButton style={receiveLocationActionButtonStyle} onClick={() => handleRenameReceiveLocation(location)}>
                   {t("receiveLocations.rename")}
-                </ButtonItem>
-                <ButtonItem layout="inline" onClick={() => handleRepathReceiveLocation(location)}>
+                </DialogButton>
+                <DialogButton style={receiveLocationActionButtonStyle} onClick={() => handleRepathReceiveLocation(location)}>
                   {t("receiveLocations.changePath")}
-                </ButtonItem>
+                </DialogButton>
                 {location.id !== defaultReceiveLocationId && (
-                  <ButtonItem layout="inline" onClick={() => handleDeleteReceiveLocation(location)}>
+                  <DialogButton style={receiveLocationActionButtonStyle} onClick={() => handleDeleteReceiveLocation(location)}>
                     {t("receiveLocations.delete")}
-                  </ButtonItem>
+                  </DialogButton>
                 )}
-              </div>
+              </Focusable>
             </div>
           </PanelSectionRow>
         ))}

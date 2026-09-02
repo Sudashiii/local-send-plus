@@ -41,9 +41,137 @@ jobs:
           SRC_DIR=$(find /tmp/unpacked -mindepth 1 -maxdepth 1 -type d | head -1)
           cp -R "$SRC_DIR"/* /tmp/repack/localsendplus
 
-      - name: Upload artifact
+      - name: Create installable package
+        run: |
+          rm -rf /tmp/package
+          mkdir -p /tmp/package
+          cd /tmp/repack
+          zip -qr /tmp/package/localsendplus.zip localsendplus
+
+      - name: Upload review artifact
         uses: actions/upload-artifact@v4
         with:
           name: localsendplus
           path: /tmp/repack/
           if-no-files-found: error
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: localsendplus-package
+          path: /tmp/package/localsendplus.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish LocalSendPlus Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build_plugin
+    runs-on: ubuntu-latest
+    concurrency:
+      group: localsendplus-release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository with tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download release package
+        uses: actions/download-artifact@v4
+        with:
+          name: localsendplus-package
+          path: /tmp/release-package
+
+      - name: Resolve release tag
+        id: version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          tag_pattern='^[0-9]+\.[0-9]{2}$'
+          current_tag="$(git tag --points-at "$GITHUB_SHA" | awk -v pattern="$tag_pattern" '$0 ~ pattern' | sort -Vr | head -n 1 || true)"
+
+          if [[ -n "$current_tag" ]]; then
+            echo "tag=$current_tag" >> "$GITHUB_OUTPUT"
+            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
+
+            if gh release view "$current_tag" >/dev/null 2>&1; then
+              echo "release_exists=true" >> "$GITHUB_OUTPUT"
+              echo "Release $current_tag already exists for $GITHUB_SHA; the rerun is complete."
+            else
+              echo "release_exists=false" >> "$GITHUB_OUTPUT"
+              echo "Resuming release for existing tag $current_tag."
+            fi
+            exit 0
+          fi
+
+          latest_tag="$(git tag --list | awk -v pattern="$tag_pattern" '$0 ~ pattern' | sort -V | tail -n 1 || true)"
+          if [[ -z "$latest_tag" ]]; then
+            echo "No release tag matching major.two-digit-minor was found." >&2
+            exit 1
+          fi
+
+          IFS='.' read -r major minor <<< "$latest_tag"
+          minor=$((10#$minor + 1))
+          if (( minor == 100 )); then
+            major=$((10#$major + 1))
+            minor=0
+          fi
+          next_tag=$(printf '%d.%02d' "$major" "$minor")
+
+          if git rev-parse --verify --quiet "refs/tags/$next_tag" >/dev/null; then
+            echo "Tag $next_tag already exists on another commit; refusing to overwrite it." >&2
+            exit 1
+          fi
+
+          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "tag_exists=false" >> "$GITHUB_OUTPUT"
+          echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          echo "Next release tag: $next_tag"
+
+      - name: Prepare versioned release asset
+        id: asset
+        run: |
+          set -euo pipefail
+
+          package_path=/tmp/release-package/localsendplus.zip
+          if [[ ! -f "$package_path" ]]; then
+            echo "Expected release package was not downloaded: $package_path" >&2
+            exit 1
+          fi
+
+          if ! unzip -Z1 "$package_path" | grep -q '^localsendplus/'; then
+            echo "Release package does not contain the expected localsendplus/ root directory." >&2
+            exit 1
+          fi
+
+          asset_path="$RUNNER_TEMP/localsendplus-${{ steps.version.outputs.tag }}.zip"
+          cp "$package_path" "$asset_path"
+          echo "path=$asset_path" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        if: steps.version.outputs.release_exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          ASSET_PATH: ${{ steps.asset.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ steps.version.outputs.tag_exists }}" == "true" ]]; then
+            gh release create "$RELEASE_TAG" "$ASSET_PATH" \
+              --verify-tag \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          else
+            gh release create "$RELEASE_TAG" "$ASSET_PATH" \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          fi
