@@ -5,8 +5,10 @@ import { FaGithub } from "react-icons/fa";
 import { t } from "../i18n";
 
 const PROTOCOL_GITHUB_URL = "https://github.com/localsend/protocol";
+const PLUGIN_GITHUB_URL = "https://github.com/Sudashiii/local-send-plus";
+const DEVELOPER_GITHUB_URL = "https://github.com/Sudashiii";
 const ORIGINAL_PLUGIN_GITHUB_URL = "https://github.com/MoYoez/Decky-LocalSend";
-const DEVELOPER_GITHUB_URL = "https://github.com/MoYoez";
+const ORIGINAL_AUTHOR_GITHUB_URL = "https://github.com/MoYoez";
 
 export const About: FC = () => {
   return (
@@ -26,7 +28,7 @@ export const About: FC = () => {
           icon={<FiGithub style={{ display: "block" }} />}
           label={t("about.pluginRepo")}
           onClick={() => {
-            Navigation.NavigateToExternalWeb(ORIGINAL_PLUGIN_GITHUB_URL);
+            Navigation.NavigateToExternalWeb(PLUGIN_GITHUB_URL);
           }}
         >
           {t("about.githubRepo")}
@@ -40,12 +42,39 @@ export const About: FC = () => {
       <PanelSectionRow>
         <ButtonItem
           icon={<FaGithub style={{ display: "block" }} />}
-          label="MoeMagicMango"
+          label="Sudashiii"
           onClick={() => {
             Navigation.NavigateToExternalWeb(DEVELOPER_GITHUB_URL);
           }}
         >
           {t("about.githubProfile")}
+        </ButtonItem>
+      </PanelSectionRow>
+
+      <h3
+        style={{ fontWeight: "bold", fontSize: "1.5em", marginBottom: "0px" }}
+      >
+        {t("about.specialThanks")}
+      </h3>
+      <PanelSectionRow>
+        <span>{t("about.originalProjectCredit")}</span>
+        <ButtonItem
+          icon={<FaGithub style={{ display: "block" }} />}
+          label="MoeMagicMango"
+          onClick={() => {
+            Navigation.NavigateToExternalWeb(ORIGINAL_AUTHOR_GITHUB_URL);
+          }}
+        >
+          {t("about.githubProfile")}
+        </ButtonItem>
+        <ButtonItem
+          icon={<FiGithub style={{ display: "block" }} />}
+          label="MoYoez/Decky-LocalSend"
+          onClick={() => {
+            Navigation.NavigateToExternalWeb(ORIGINAL_PLUGIN_GITHUB_URL);
+          }}
+        >
+          {t("about.originalProject")}
         </ButtonItem>
       </PanelSectionRow>
 

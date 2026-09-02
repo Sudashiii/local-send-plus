@@ -1,13 +1,9 @@
 import { en, TranslationKeys } from "./en";
-import { zhCN } from "./zh-CN";
 
 const translations: Record<string, TranslationKeys> = {
   en,
   "en-US": en,
   "en-GB": en,
-  "zh-CN": zhCN,
-  "zh-Hans": zhCN,
-  zh: zhCN,
 };
 
 let currentLanguage = "en";
@@ -99,5 +95,5 @@ export function getTranslations(): TranslationKeys {
 // Initialize on import
 initI18n();
 
-export { en, zhCN };
+export { en };
 export type { TranslationKeys };
