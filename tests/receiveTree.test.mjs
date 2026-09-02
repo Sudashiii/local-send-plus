@@ -13,7 +13,14 @@ const transpiled = typescript.transpileModule(source, {
 }).outputText;
 const module = { exports: {} };
 vm.runInNewContext(transpiled, { module, exports: module.exports }, { filename: sourcePath.pathname });
-const { buildReceiveTree, collectReceiveItemPaths, getReceiveTreeAtPath, normalizeReceiveRelativePath } = module.exports;
+const {
+  buildReceiveTree,
+  collectReceiveItemPaths,
+  compactReceiveSelections,
+  getReceiveTreeAtPath,
+  normalizeReceiveRelativePath,
+  toggleReceiveSelection,
+} = module.exports;
 
 const items = [
   { itemId: "1", relativePath: "photos/2026/a.jpg", currentPath: "/receive/photos/2026/a.jpg", size: 10 },
@@ -35,9 +42,27 @@ test("normalizes slash variants and rejects traversal", () => {
 });
 
 test("overlapping folder/file selections can be compacted by their paths", () => {
-  const selections = ["photos", "photos/2026/a.jpg", "notes.txt"];
-  const compact = selections.filter((selection, index) =>
-    !selections.some((parent, parentIndex) => parentIndex !== index && selection.startsWith(`${parent}/`)),
+  assert.deepEqual(
+    Array.from(compactReceiveSelections(["photos", "photos/2026/a.jpg", "notes.txt"])),
+    ["notes.txt", "photos"],
   );
-  assert.deepEqual(compact, ["photos", "notes.txt"]);
+});
+
+test("individual files toggle independently and survive navigation", () => {
+  let selected = toggleReceiveSelection(new Set(), "photos/2026/a.jpg");
+  selected = toggleReceiveSelection(selected, "photos/2026/b.jpg");
+  assert.deepEqual(Array.from(selected).sort(), ["photos/2026/a.jpg", "photos/2026/b.jpg"]);
+
+  selected = toggleReceiveSelection(selected, "photos/2026/a.jpg");
+  assert.deepEqual(Array.from(selected), ["photos/2026/b.jpg"]);
+  assert.deepEqual(Array.from(getReceiveTreeAtPath(buildReceiveTree(items), "photos/2026"), (node) => node.path), [
+    "photos/2026/a.jpg",
+    "photos/2026/b.jpg",
+  ]);
+});
+
+test("folder selections remain recursive while child selections compact", () => {
+  const folder = buildReceiveTree(items)[0];
+  assert.deepEqual(Array.from(collectReceiveItemPaths(folder)), ["photos/2026/a.jpg", "photos/2026/b.jpg"]);
+  assert.deepEqual(Array.from(compactReceiveSelections(["photos", "photos/2026/b.jpg"])), ["photos"]);
 });

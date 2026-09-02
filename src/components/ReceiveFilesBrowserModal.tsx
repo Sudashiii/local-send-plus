@@ -15,9 +15,11 @@ import type { ReceiveHistoryItem, ReceiveLocation } from "../functions/api";
 import { moveReceiveHistoryItems } from "../functions/api";
 import {
   buildReceiveTree,
+  compactReceiveSelections,
   collectReceiveItemPaths,
   formatReceiveSize,
   getReceiveTreeAtPath,
+  toggleReceiveSelection,
   type ReceiveTreeNode,
 } from "../utils/receiveTree";
 import { t } from "../i18n";
@@ -53,11 +55,7 @@ export const ReceiveFilesBrowserModal = ({
   const breadcrumbs = currentPath ? currentPath.split("/") : [];
   const selectedFiles = useMemo(() => {
     const paths = new Set<string>();
-    for (const selection of selected) {
-      const node = tree
-        .flatMap((rootNode) => [rootNode])
-        .find((rootNode) => rootNode.path === selection);
-      if (node) collectReceiveItemPaths(node).forEach((path) => paths.add(path));
+    for (const selection of compactReceiveSelections(selected)) {
       (entry.items || []).forEach((item) => {
         if (item.relativePath === selection || item.relativePath.startsWith(`${selection}/`)) {
           paths.add(item.relativePath);
@@ -68,12 +66,7 @@ export const ReceiveFilesBrowserModal = ({
   }, [entry.items, selected, tree]);
 
   const toggleNode = (node: ReceiveTreeNode) => {
-    setSelected((previous) => {
-      const next = new Set(previous);
-      if (next.has(node.path)) next.delete(node.path);
-      else next.add(node.path);
-      return next;
-    });
+    setSelected((previous) => toggleReceiveSelection(previous, node.path));
   };
 
   const selectVisible = () => {
@@ -86,12 +79,13 @@ export const ReceiveFilesBrowserModal = ({
   };
 
   const move = async (moveEntire: boolean) => {
-    if (!destinationId || (!moveEntire && selected.size === 0)) return;
+    const selections = compactReceiveSelections(selected);
+    if (!destinationId || (!moveEntire && selections.length === 0)) return;
     setMoving(true);
     try {
       const result = await moveReceiveHistoryItems(
         entry.id,
-        Array.from(selected),
+        selections,
         destinationId,
         moveEntire,
       );
@@ -125,22 +119,18 @@ export const ReceiveFilesBrowserModal = ({
         <div style={{ color: "#b8b6b4", fontSize: "12px", marginBottom: "8px" }}>
           {entry.destinationName || entry.destinationPath || entry.folderPath}
         </div>
-        <Focusable style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "8px" }}>
-          <DialogButton
-            onClick={() => setCurrentPath("")}
-            style={{ minWidth: "36px", padding: "4px 8px" }}
-          >
-            <FaFolder size={11} />
-          </DialogButton>
-          {breadcrumbs.map((part, index) => (
-            <div key={`${part}-${index}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <FaChevronRight size={9} />
-              <DialogButton onClick={() => navigateToBreadcrumb(index)} style={{ padding: "4px 8px" }}>
-                {part}
-              </DialogButton>
-            </div>
-          ))}
-        </Focusable>
+        {breadcrumbs.length > 0 && (
+          <Focusable style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "8px" }}>
+            {breadcrumbs.map((part, index) => (
+              <div key={`${part}-${index}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <FaChevronRight size={9} />
+                <DialogButton onClick={() => navigateToBreadcrumb(index)} style={{ padding: "4px 8px" }}>
+                  {part}
+                </DialogButton>
+              </div>
+            ))}
+          </Focusable>
+        )}
         {currentPath && (
           <DialogButton
             onClick={() => setCurrentPath(breadcrumbs.slice(0, -1).join("/"))}
@@ -157,6 +147,64 @@ export const ReceiveFilesBrowserModal = ({
           ) : (
             nodes.map((node) => {
               const isSelected = selected.has(node.path);
+              const metadata = node.kind === "file"
+                ? [
+                    node.item?.currentPath || node.path,
+                    formatReceiveSize(node.size || 0),
+                    typeof node.modifiedAt === "number"
+                      ? new Date(node.modifiedAt * 1000).toLocaleString()
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : `${collectReceiveItemPaths(node).length} ${t("common.files")}`;
+              const nodeContent = (
+                <div style={{ width: "100%", minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "6px",
+                      width: "100%",
+                      minWidth: 0,
+                    }}
+                  >
+                    {node.kind === "folder" ? (
+                      <FaFolder size={12} color="#4a9eff" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    ) : (
+                      <FaFile size={12} color="#b8b6b4" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    )}
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        width: "100%",
+                        whiteSpace: "normal",
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
+                        lineHeight: "1.35",
+                      }}
+                    >
+                      {node.name}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      width: "100%",
+                      minWidth: 0,
+                      marginTop: "3px",
+                      color: "#888",
+                      fontSize: "10px",
+                      lineHeight: "1.35",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {metadata}
+                  </div>
+                </div>
+              );
               return (
                 <div
                   key={node.path}
@@ -165,42 +213,57 @@ export const ReceiveFilesBrowserModal = ({
                     alignItems: "center",
                     gap: "6px",
                     padding: "6px 4px",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box",
                     borderBottom: "1px solid #3d3d3d",
                     background: isSelected ? "rgba(26,159,255,0.18)" : undefined,
                   }}
                 >
-                  <button
+                  <DialogButton
                     onClick={() => toggleNode(node)}
-                    aria-label={isSelected ? t("receiveHistory.deselect") : t("receiveHistory.select")}
-                    style={{ width: "22px", height: "22px", padding: 0 }}
-                  >
-                    {isSelected ? "☑" : "☐"}
-                  </button>
-                  <button
-                    onClick={() => node.kind === "folder" && setCurrentPath(node.path)}
-                    disabled={node.kind !== "folder"}
+                    disabled={moving}
+                    focusable={!moving}
+                    onOKActionDescription={isSelected ? t("receiveHistory.deselect") : t("receiveHistory.select")}
                     style={{
-                      flex: 1,
+                      flexShrink: 0,
+                      minWidth: "30px",
+                      width: "30px",
+                      height: "30px",
+                      padding: "3px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
-                      textAlign: "left",
-                      background: "transparent",
-                      border: 0,
-                      color: "#e8e8e8",
-                      padding: 0,
+                      justifyContent: "center",
+                      fontSize: "16px",
                     }}
                   >
-                    {node.kind === "folder" ? <FaFolder size={12} color="#4a9eff" /> : <FaFile size={12} color="#b8b6b4" />}
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {node.name}
-                    </span>
-                    <span style={{ color: "#888", fontSize: "10px", marginLeft: "auto" }}>
-                      {node.kind === "file"
-                        ? `${formatReceiveSize(node.size || 0)}${node.modifiedAt ? ` · ${new Date(node.modifiedAt * 1000).toLocaleString()}` : ""}${node.item?.currentPath ? ` · ${node.item.currentPath}` : ""}`
-                        : `${collectReceiveItemPaths(node).length} ${t("common.files")}`}
-                    </span>
-                  </button>
+                    {isSelected ? "☑" : "☐"}
+                  </DialogButton>
+                  {node.kind === "folder" ? (
+                    <DialogButton
+                      onClick={() => setCurrentPath(node.path)}
+                      disabled={moving}
+                      focusable={!moving}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        width: "100%",
+                        padding: 0,
+                        display: "block",
+                        textAlign: "left",
+                        background: "transparent",
+                        border: 0,
+                        color: "#e8e8e8",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {nodeContent}
+                    </DialogButton>
+                  ) : (
+                    <div style={{ flex: 1, minWidth: 0, width: "100%", color: "#e8e8e8" }}>
+                      {nodeContent}
+                    </div>
+                  )}
                 </div>
               );
             })

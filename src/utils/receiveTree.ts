@@ -92,6 +92,35 @@ export const collectReceiveItemPaths = (node: ReceiveTreeNode): string[] => {
   return (node.children || []).flatMap(collectReceiveItemPaths);
 };
 
+/** Toggle one normalized manifest path without changing any other selection. */
+export const toggleReceiveSelection = (
+  selected: Iterable<string>,
+  path: string,
+): Set<string> => {
+  const normalizedPath = normalizeReceiveRelativePath(path);
+  const next = new Set(selected);
+  if (next.has(normalizedPath)) next.delete(normalizedPath);
+  else next.add(normalizedPath);
+  return next;
+};
+
+/** Remove child selections that are already covered by a selected parent. */
+export const compactReceiveSelections = (selections: Iterable<string>): string[] => {
+  const normalized = Array.from(new Set(Array.from(selections, normalizeReceiveRelativePath))).sort(
+    (left, right) => {
+      const depthDifference = left.split("/").length - right.split("/").length;
+      return depthDifference || left.localeCompare(right);
+    },
+  );
+  const compact: string[] = [];
+  normalized.forEach((selection) => {
+    if (!compact.some((parent) => selection.startsWith(`${parent}/`))) {
+      compact.push(selection);
+    }
+  });
+  return compact;
+};
+
 export const formatReceiveSize = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes < 1024) return `${Math.max(0, bytes || 0)} B`;
   const units = ["KiB", "MiB", "GiB", "TiB"];
