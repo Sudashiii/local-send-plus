@@ -14,8 +14,6 @@
   <img src="https://forthebadge.com/api/badges/generate?panels=2&primaryLabel=Work+On&secondaryLabel=Steam+Deck&primaryBGColor=%23000000&primaryTextColor=%23ffffff&secondaryBGColor=%23389AD5&secondaryTextColor=%23ffffff&primaryFontSize=12&primaryFontWeight=600&primaryLetterSpacing=2&primaryFontFamily=Roboto&primaryTextTransform=uppercase&secondaryFontSize=12&secondaryFontWeight=900&secondaryLetterSpacing=2&secondaryFontFamily=Montserrat&secondaryTextTransform=uppercase&borderRadius=9" style="vertical-align:middle;"/>
 </p>
 
-[ENGLISH](README.md) | [简体中文](README-ZH-CN.md)
-
 ![preview](https://raw.githubusercontent.com/MoYoez/Decky-LocalSend/main/.github/assets/preview.jpg)
 
 LocalSendPlus is an extended version of the original [Decky LocalSend](https://github.com/MoYoez/Decky-LocalSend) project. It brings LocalSend functionality to Steam Deck gaming mode with named receive destinations and a manifest-backed receive-history browser.
@@ -140,6 +138,8 @@ npm build
 Please refer to [Github Action Build](.github/workflows/build.yaml)
 
 ## Acknowledgments
+
+- Special thanks to [MoeMagicMango](https://github.com/MoYoez) for creating [Decky LocalSend](https://github.com/MoYoez/Decky-LocalSend), the original project this plugin is based on.
 
 - [LocalSend](https://localsend.org)
 
